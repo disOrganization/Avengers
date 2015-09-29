@@ -5,6 +5,10 @@
  */
 package saulmm.avengers.injector;
 
+import android.app.Application;
+import android.content.Context;
+import android.content.SharedPreferences;
+
 import javax.inject.Singleton;
 
 import dagger.Module;
@@ -16,6 +20,8 @@ import saulmm.avengers.model.rest.RestRepository;
 @Module
 public class AppModule {
 
+    static final String PREFS_DEFAULT = "avenger";
+
     private final AvengersApplication mAvengersApplication;
 
     public AppModule(AvengersApplication avengersApplication) {
@@ -24,6 +30,10 @@ public class AppModule {
     }
 
     @Provides @Singleton AvengersApplication provideAvengersApplicationContext () { return mAvengersApplication; }
+
+    @Provides @Singleton SharedPreferences provideSharedPrefs() {
+        return this.mAvengersApplication.getSharedPreferences(PREFS_DEFAULT, Context.MODE_PRIVATE);
+    }
 
     @Provides @Singleton Repository provideDataRepository (RestRepository restRepository) { return restRepository; }
 }

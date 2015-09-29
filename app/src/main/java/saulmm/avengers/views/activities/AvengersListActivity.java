@@ -5,6 +5,7 @@
  */
 package saulmm.avengers.views.activities;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -36,6 +37,9 @@ public class AvengersListActivity extends AppCompatActivity
     @Bind(R.id.activity_avengers_recycler) RecyclerView mAvengersRecycler;
     @Bind(R.id.activity_avengers_toolbar) Toolbar mAvengersToolbar;
     @Inject AvengersListPresenter mAvengersListPresenter;
+    @Inject SharedPreferences pref;
+
+    private final static String MY_ID = "my_id";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +52,8 @@ public class AvengersListActivity extends AppCompatActivity
         initializeRecyclerView();
         initializeDependencyInjector();
         initializePresenter();
+
+        //pref.edit().putString(MY_ID, "lionel").apply();
     }
 
     private void initializeToolbar() {

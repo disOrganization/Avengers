@@ -5,6 +5,7 @@
  */
 package saulmm.avengers.views.activities;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.v7.app.ActionBar;
@@ -47,6 +48,7 @@ public class AvengerDetailActivity extends AppCompatActivity implements Avengers
     @Bind(R.id.activity_avenger_detail_colltoolbar)   CollapsingToolbarLayout mDetailCollapsingToolbar;
 
     @Inject AvengerDetailPresenter avengerDetailPresenter;
+    @Inject SharedPreferences pref;
 
     private View comicView;
 

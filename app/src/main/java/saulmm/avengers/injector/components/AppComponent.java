@@ -5,6 +5,8 @@
  */
 package saulmm.avengers.injector.components;
 
+import android.content.SharedPreferences;
+
 import javax.inject.Singleton;
 
 import dagger.Component;
@@ -17,4 +19,5 @@ public interface AppComponent {
 
     AvengersApplication app();
     Repository dataRepository();
+    SharedPreferences pref();
 }
