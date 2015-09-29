@@ -7,24 +7,20 @@ package saulmm.avengers.model.rest;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
 
-import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
 import java.util.List;
 
 import javax.inject.Inject;
 
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
-import retrofit.RetrofitError;
-import retrofit.converter.GsonConverter;
+import retrofit.GsonConverterFactory;
+import retrofit.Retrofit;
+import retrofit.RxJavaCallAdapterFactory;
 import rx.Observable;
 import saulmm.avengers.model.Comic;
 import saulmm.avengers.model.Repository;
-import saulmm.avengers.model.rest.exceptions.NetworkErrorException;
-import saulmm.avengers.model.rest.exceptions.NetworkTimeOutException;
-import saulmm.avengers.model.rest.exceptions.NetworkUknownHostException;
 
 public class RestRepository implements Repository {
 
@@ -38,55 +34,34 @@ public class RestRepository implements Repository {
     public RestRepository() {
 
         Gson gson = new GsonBuilder()
-            .registerTypeAdapterFactory(new CharacterItemAdapterFactory())
-            .create();
+                .registerTypeAdapterFactory(new CharacterItemAdapterFactory())
+                .create();
 
-        RestAdapter marvelApiAdapter = new RestAdapter.Builder()
-            .setEndpoint(MarvelApi.END_POINT)
-            .setLogLevel(RestAdapter.LogLevel.HEADERS_AND_ARGS)
-            .setRequestInterceptor(authorizationInterceptor)
-            .setConverter(new GsonConverter(gson))
-            .setErrorHandler(new RetrofitErrorHandler())
-            .build();
+        OkHttpClient client = new OkHttpClient();
+        client.interceptors().add(chain -> {
+            Request request = chain.request();
+            String marvelHash = MarvelApiUtils.generateMarvelHash(publicKey, privateKey);
+            request = request.newBuilder().url(
+                    request.httpUrl().newBuilder()
+                            .addQueryParameter(MarvelApi.PARAM_API_KEY, publicKey)
+                            .addQueryParameter(MarvelApi.PARAM_TIMESTAMP, MarvelApiUtils.getUnixTimeStamp())
+                            .addQueryParameter(MarvelApi.PARAM_HASH, marvelHash)
+                            .build())
+                    .build();
+            return chain.proceed(request);
+        });
+
+        Retrofit marvelApiAdapter = new Retrofit.Builder()
+                .baseUrl(MarvelApi.END_POINT)
+                .client(client)
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                .build();
 
         mMarvelApi = marvelApiAdapter.create(MarvelApi.class);
     }
 
-    RequestInterceptor authorizationInterceptor = new RequestInterceptor() {
-        @Override
-        public void intercept(RequestFacade request) {
 
-            String marvelHash = MarvelApiUtils.generateMarvelHash(publicKey, privateKey);
-            request.addQueryParam(MarvelApi.PARAM_API_KEY, publicKey);
-            request.addQueryParam(MarvelApi.PARAM_TIMESTAMP, MarvelApiUtils.getUnixTimeStamp());
-            request.addQueryParam(MarvelApi.PARAM_HASH, marvelHash);
-        }
-    };
-
-    public class RetrofitErrorHandler implements retrofit.ErrorHandler {
-
-        @Override
-        public Throwable handleError(retrofit.RetrofitError cause) {
-
-            if (cause.getKind() == retrofit.RetrofitError.Kind.NETWORK) {
-
-                if (cause.getCause() instanceof SocketTimeoutException)
-                    return new NetworkTimeOutException();
-
-                else if (cause.getCause() instanceof UnknownHostException)
-                    return new NetworkUknownHostException();
-
-                else if (cause.getCause() instanceof ConnectException)
-                    return cause.getCause();
-
-            } else {
-
-                return new NetworkErrorException();
-            }
-
-            return new Exception();
-        };
-    }
 
     @Override
     public Observable<saulmm.avengers.model.Character> getCharacter(int characterId) {
@@ -100,11 +75,8 @@ public class RestRepository implements Repository {
         final String comicsType     = "comic";
 
         return mMarvelApi.getCharacterComics(characterId, comicsFormat, comicsType)
-            .retry((attemps, error) -> error instanceof SocketTimeoutException && attemps < MAX_ATTEMPS);
+                .retry((attemps, error) -> error instanceof SocketTimeoutException && attemps < MAX_ATTEMPS);
     }
 
-    public Observable<RetrofitError> emitRetrofitError (RetrofitError retrofitError) {
 
-        return Observable.just(retrofitError);
-    }
 }
